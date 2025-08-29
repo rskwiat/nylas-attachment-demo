@@ -1,4 +1,12 @@
 {
   "name": "nylas-attachment",
-  "packageManager": "yarn@4.9.4"
+  "packageManager": "yarn@4.9.4",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "backend:dev": "yarn workspace @nylas-attachment/backend dev",
+    "backend:build": "yarn workspace @nylas-attachment/backend build",
+    "backend:start": "yarn workspace @nylas-attachment/backend start"
+  }
 }
