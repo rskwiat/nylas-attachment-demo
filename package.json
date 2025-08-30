@@ -7,6 +7,21 @@
   "scripts": {
     "backend:dev": "yarn workspace @nylas-attachment/backend dev",
     "backend:build": "yarn workspace @nylas-attachment/backend build",
-    "backend:start": "yarn workspace @nylas-attachment/backend start"
+    "backend:start": "yarn workspace @nylas-attachment/backend start",
+    "frontend:dev": "yarn workspace @nylas-attachment/frontend dev",
+    "frontend:build": "yarn workspace @nylas-attachment/frontend build",
+    "frontend:preview": "yarn workspace @nylas-attachment/frontend preview",
+    "dev": "concurrently \"yarn backend:dev\" \"yarn frontend:dev\"",
+    "build": "yarn backend:build && yarn frontend:build"
+  },
+  "dependencies": {
+    "autoprefixer": "^10.4.21",
+    "daisyui": "^5.0.54",
+    "postcss": "^8.5.6",
+    "react-icons": "^5.5.0",
+    "tailwindcss": "^4.1.12"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }
