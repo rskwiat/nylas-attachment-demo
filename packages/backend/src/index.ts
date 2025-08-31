@@ -59,7 +59,19 @@ declare global {
 
 // Middleware
 app.use(helmet()); // Security headers
-app.use(cors()); // Enable CORS
+app.use(cors({
+
+  
+  origin: [
+    'http://localhost:5173',
+    'https://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:4173',
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+})); // Enable CORS
 app.use(morgan('combined')); // Logging
 app.use(express.json({ limit: '10mb' })); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
@@ -145,28 +157,42 @@ app.post("/nylas/send-email", async (req, res): Promise<void> => {
       return;
     }
 
-    const { to, subject, body } = req.body;
+    const { subject, body, attachments } = req.body;
+
+    const to = 'rskwiat@gmail.com';
     
-    if (!to || !subject || !body) {
+    if (!subject || !body) {
       res.status(400).json({
-        error: 'Missing required fields: to, subject, body'
+        error: 'Missing required fields: subject, body'
       });
       return;
     }
 
+    const emailRequest: any = {
+      to: Array.isArray(to) ? to : [{ email: to }],
+      subject,
+      body,
+    }
+
+    if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+      emailRequest.attachments = attachments.map((attachment: any) => ({
+        filename: attachment.filename,
+        content: attachment.content, // base64 encoded
+        content_type: attachment.contentType,
+        size: attachment.size,
+      }));
+    }
+
     const sentMessage = await nylas.messages.send({
       identifier: grantId,
-      requestBody: {
-        to: Array.isArray(to) ? to : [{ email: to }],
-        subject,
-        body,
-      },
+      requestBody: emailRequest
     });
     
     res.json({
       message: 'Email sent successfully',
       messageId: sentMessage.data?.id,
-      sentMessage: sentMessage.data
+      sentMessage: sentMessage.data,
+      attachments: attachments?.length || 0,
     });
   } catch (error) {
     console.error("Error sending email:", error);
@@ -177,15 +203,22 @@ app.post("/nylas/send-email", async (req, res): Promise<void> => {
   }
 });
 
-app.get("/api/emails", requireGrant, async (req: Request, res: Response) => {
+app.get("/nylas/sent-emails", requireGrant, async (req: Request, res: Response) => {
   try {
     const messages = await nylas.messages.list({
       identifier: req.grantId!,
       queryParams: { limit: 10 }
     });
 
+    const sentToRecipient = messages.data.filter(message => {
+      return message.from?.some(recipient => 
+        recipient.email?.toLowerCase() === 'rskwiat@gmail.com'
+      );
+    });
+
     res.json({ 
-      messages: messages.data,
+      messages: sentToRecipient,
+      totalFound: messages,
       userId: req.userId 
     });
   } catch (error) {

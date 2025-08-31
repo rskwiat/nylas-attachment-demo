@@ -1,22 +1,15 @@
-import { useState } from 'react';
-import { FaEnvelope, FaPaperclip, FaUser, FaCog, FaMoon, FaSun, FaTimes } from 'react-icons/fa';
+import { useEffect, useState } from 'react';
+import { FaEnvelope, FaMoon, FaSun } from 'react-icons/fa';
 import './App.css';
 import EmailModal from './components/EmailModal';
-
-interface EmailForm {
-  to: string;
-  subject: string;
-  body: string;
-}
+import EmailCard from './components/EmailCard';
 
 function App() {
+    const [emails, setEmails] = useState([]);
+    const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState('light');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [emailForm, setEmailForm] = useState<EmailForm>({
-    to: '',
-    subject: '',
-    body: ''
-  });
+
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -24,34 +17,27 @@ function App() {
     document.documentElement.setAttribute('data-theme', newTheme);
   };
 
-  const handleInputChange = (field: keyof EmailForm, value: string) => {
-    setEmailForm(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
+  useEffect(() => {
+    fetchSentEmails();
+  }, [isModalOpen]);
 
-  const handleSendEmail = async () => {
+  const fetchSentEmails = async () => {
     try {
-      // Here you would make the API call to your backend
-      console.log('Sending email:', emailForm);
-      
-      // Close modal and reset form
-      setIsModalOpen(false);
-      setEmailForm({ to: '', subject: '', body: '' });
-      
-      // Show success message (you can use a toast library or alert)
-      alert('Email sent successfully!');
-    } catch (error) {
-      console.error('Error sending email:', error);
-      alert('Failed to send email');
-    }
-  };
+      setLoading(true);
+      const response = await fetch('http://localhost:3001/nylas/sent-emails');
+      if (!response.ok) {
+        throw new Error('Failed to fetch sent emails');
+      }
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEmailForm({ to: '', subject: '', body: '' });
-  };
+      const data = await response.json();
+      setEmails(data.messages);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      throw new Error('Failed to fetch emails', error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-base-100">
@@ -88,13 +74,19 @@ function App() {
         <div className="card bg-base-200 shadow-xl">
           <div className="card-body">
             <h2 className="card-title">Recent Emails</h2>
-            <p>Fetch all emails sent by nylas here</p>
+            {loading && (
+              <div className="flex justify-center items-center p-8">
+                <span className="loading loading-spinner loading-lg"></span>
+              </div>          
+            )}
+
+            {emails && <EmailCard emails={emails} />}
           </div>
         </div>
       </div>
 
       {/* Compose Email Modal */}
-      {isModalOpen && <EmailModal />}
+      {isModalOpen && <EmailModal setIsModalOpen={setIsModalOpen} />}
     </div>
   );
 }

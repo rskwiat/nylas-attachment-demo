@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
-import { FaEnvelope, FaPaperclip, FaUser, FaCog, FaMoon, FaSun, FaTimes } from 'react-icons/fa';
+import { FaEnvelope, FaPaperclip, FaTimes, FaTrash } from 'react-icons/fa';
 
 interface EmailForm {
   subject: string;
@@ -11,9 +11,15 @@ interface EmailFormProps {
   setIsModalOpen: (value: boolean) => void;
 }
 
-
 function EmailModal({ setIsModalOpen }: EmailFormProps) {
-    const [emailForm, setEmailForm] = useState<EmailForm>({
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const handleAttachment = () => {
+    fileInput.current?.click();
+  }
+
+  const [emailForm, setEmailForm] = useState<EmailForm>({
     subject: '',
     body: ''
   });
@@ -21,6 +27,44 @@ function EmailModal({ setIsModalOpen }: EmailFormProps) {
     const handleCloseModal = () => {
       setIsModalOpen(false);
       setEmailForm({ subject: '', body: '' });
+      setAttachments([]);
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () =>{
+        const base64 = (reader.result as string).split(',')[1];
+        resolve(base64)
+      };
+      reader.onerror = error => reject(error);
+    })
+  }
+
+  const handleFileChange = (e) => {
+    const files = e.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      
+      setAttachments((prev) => {
+        const existingNames = prev.map(file => file.name);
+        const uniqueNewFiles = newFiles.filter(file => !existingNames.includes(file.name));
+        return [...prev, ...uniqueNewFiles];
+      });
+    }
+    
+    if (fileInput.current) {
+      fileInput.current.value = '';
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const clearAllAttachments = () => {
+    setAttachments([]);
   };
 
   const handleInputChange = (field: keyof EmailForm, value: string) => {
@@ -30,42 +74,90 @@ function EmailModal({ setIsModalOpen }: EmailFormProps) {
       }));
     };
   
-    const handleSendEmail = async () => {
-      try {
-        // Here you would make the API call to your backend
-        console.log('Sending email:', emailForm);
-        
-        // Close modal and reset form
-        setIsModalOpen(false);
-        setEmailForm({ subject: '', body: '' });
-        
-        // Show success message (you can use a toast library or alert)
-        alert('Email sent successfully!');
-      } catch (error) {
-        console.error('Error sending email:', error);
-        alert('Failed to send email');
+  const handleSendEmail = async () => {
+    try {
+
+      let attachmentDataArray: any[] = [];
+
+      if (attachments.length > 0) {
+        attachmentDataArray = await Promise.all(
+          attachments.map(async (file) => {
+            const base64Content = await fileToBase64(file);
+            return {
+              filename: file.name,
+              content: base64Content,
+              contentType: file.type || 'application/octet-stream',
+              size: file.size,
+            };
+          })
+        );
       }
-    };
+
+      console.log('Sending email:', emailForm);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const requestBody: any = {
+        subject: emailForm.subject,
+        body: emailForm.body
+      };
+
+      if (attachmentDataArray.length > 0) {
+        requestBody.attachments = attachmentDataArray;
+      }
+
+      const response = await fetch('http://localhost:3001/nylas/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error);
+      }
+      const result = await response.json();
+      console.log('Email sent ===', result);
+      // Close modal and reset form
+      setIsModalOpen(false);
+      setEmailForm({ subject: '', body: '' });
+      
+      // Show success message (you can use a toast library or alert)
+      alert('Email sent successfully!');
+    } catch (error) {
+      console.error('Error sending email:', error);
+      alert('Failed to send email');
+    }
+  };
 
   return (
     <div className="modal modal-open">
           <div className="modal-box w-11/12 max-w-2xl">
-            {/* Modal Header */}
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-lg">Compose Email</h3>
+
+              <div>
+                <input
+                  type='file'
+                  onChange={handleFileChange}
+                  ref={fileInput}
+                  style={{ display: 'none' }}
+                />
+                <button className="btn btn-outline" onClick={() => handleAttachment()}>
+                  <FaPaperclip />
+                </button>
               <button 
                 className="btn btn-sm btn-circle btn-ghost"
                 onClick={handleCloseModal}
               >
                 <FaTimes />
               </button>
+              </div>
+
             </div>
 
-            {/* Email Form */}
             <div className="space-y-4">
-              {/* To Field */}
-
-              {/* Subject Field */}
               <div className="form-control">
                 <label className="label">
                   <span className="label-text">Subject</span>
@@ -79,24 +171,46 @@ function EmailModal({ setIsModalOpen }: EmailFormProps) {
                 />
               </div>
 
-              {/* Attachment Section (for future use) */}
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text">Attachments</span>
-                </label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="file"
-                    className="file-input file-input-bordered w-full"
-                    multiple
-                  />
-                  <button className="btn btn-outline">
-                    <FaPaperclip />
-                  </button>
-                </div>
+          {attachments.length > 0 && (
+            <div className="form-control">
+              <div className="flex justify-between items-center mb-2">
+                <button 
+                  className="btn btn-xs btn-ghost" 
+                  onClick={clearAllAttachments}
+                >
+                  Clear All
+                </button>
               </div>
+              
+              <div className="space-y-2 max-h-32 overflow-y-auto border rounded p-2 bg-base-200">
+                {attachments?.map((file, index) => (
+                  <div key={index} className="flex justify-between items-center bg-base-100 p-2 rounded">
+                    <div className="flex items-center space-x-2 flex-1">
+                      <FaPaperclip className="text-gray-500" />
+                      <div className="flex-1 min-w-0">
+                        <div 
+                          className="text-sm font-medium truncate cursor-pointer hover:text-primary"
+                          title={file.name}
+                          onClick={() => {
+                            window.open(URL.createObjectURL(file), '_blank');
+                          }}
+                        >
+                          {file.name}
+                        </div>
+                      </div>
+                    </div>
+                    <button 
+                      className="btn btn-xs btn-ghost text-error" 
+                      onClick={() => removeAttachment(index)}
+                    >
+                      <FaTrash />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-              {/* Body Field */}
               <div className="form-control">
                 <label className="label">
                   <span className="label-text">Message</span>
@@ -108,22 +222,12 @@ function EmailModal({ setIsModalOpen }: EmailFormProps) {
                   onChange={(e) => handleInputChange('body', e.target.value)}
                 ></textarea>
               </div>
-
-
             </div>
 
-            {/* Modal Actions */}
             <div className="modal-action">
-              <button 
-                className="btn btn-ghost"
-                onClick={handleCloseModal}
-              >
-                Cancel
-              </button>
               <button 
                 className="btn btn-primary"
                 onClick={handleSendEmail}
-                // disabled={!emailForm.to || !emailForm.subject || !emailForm.body}
               >
                 <FaEnvelope className="mr-2" />
                 Send Email
