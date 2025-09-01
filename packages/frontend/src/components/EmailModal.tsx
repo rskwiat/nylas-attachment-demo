@@ -24,11 +24,11 @@ function EmailModal({ setIsModalOpen }: EmailFormProps) {
     body: ''
   });
 
-    const handleCloseModal = () => {
-      setIsModalOpen(false);
-      setEmailForm({ subject: '', body: '' });
-      setAttachments([]);
-  };
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEmailForm({ subject: '', body: '' });
+    setAttachments([]);
+};
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -105,7 +105,7 @@ function EmailModal({ setIsModalOpen }: EmailFormProps) {
         requestBody.attachments = attachmentDataArray;
       }
 
-      const response = await fetch('http://localhost:3001/nylas/send-email', {
+      const response = await fetch('api/nylas/send-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -121,9 +121,7 @@ function EmailModal({ setIsModalOpen }: EmailFormProps) {
       console.log('Email sent ===', result);
       // Close modal and reset form
       setIsModalOpen(false);
-      setEmailForm({ subject: '', body: '' });
-      
-      // Show success message (you can use a toast library or alert)
+      setEmailForm({ subject: '', body: '' });      
       alert('Email sent successfully!');
     } catch (error) {
       console.error('Error sending email:', error);
@@ -182,7 +180,10 @@ function EmailModal({ setIsModalOpen }: EmailFormProps) {
                 </button>
               </div>
               
-              <div className="space-y-2 max-h-32 overflow-y-auto border rounded p-2 bg-base-200">
+              <div className="space-y-2 max-h-32 overflow-y-auto rounded p-2 bg-base-200">
+                <div className="space-x-2 text-sm font-bold">
+                  Attachments:
+                </div>
                 {attachments?.map((file, index) => (
                   <div key={index} className="flex justify-between items-center bg-base-100 p-2 rounded">
                     <div className="flex items-center space-x-2 flex-1">
@@ -211,12 +212,12 @@ function EmailModal({ setIsModalOpen }: EmailFormProps) {
             </div>
           )}
 
-              <div className="form-control">
+              <div className="form-control flex flex-col">
                 <label className="label">
                   <span className="label-text">Message</span>
                 </label>
                 <textarea
-                  className="textarea textarea-bordered h-32"
+                  className="textarea textarea-bordered h-32 resize-none w-[100%]"
                   placeholder="Enter your message here..."
                   value={emailForm.body}
                   onChange={(e) => handleInputChange('body', e.target.value)}

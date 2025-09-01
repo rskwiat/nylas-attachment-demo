@@ -119,7 +119,7 @@ app.post("/nylas/send-email", async (req, res): Promise<void> => {
 
     const { subject, body, attachments } = req.body;
 
-    const to = 'rskwiat@gmail.com';
+    const to = process.env.TEST_EMAIL;
     
     if (!subject || !body) {
       res.status(400).json({
@@ -137,7 +137,7 @@ app.post("/nylas/send-email", async (req, res): Promise<void> => {
     if (attachments && Array.isArray(attachments) && attachments.length > 0) {
       emailRequest.attachments = attachments.map((attachment: any) => ({
         filename: attachment.filename,
-        content: attachment.content, // base64 encoded
+        content: attachment.content,
         content_type: attachment.contentType,
         size: attachment.size,
       }));
@@ -172,7 +172,7 @@ app.get("/nylas/sent-emails", requireGrant, async (req: Request, res: Response) 
 
     const sentToRecipient = messages.data.filter(message => {
       return message.from?.some(recipient => 
-        recipient.email?.toLowerCase() === 'rskwiat@gmail.com'
+        recipient.email?.toLowerCase() === process.env.TEST_EMAIL
       );
     });
 

@@ -6,13 +6,11 @@ export class GrantService {
       const existingGrant = await Grant.findOne({ userId });
       
       if (existingGrant) {
-        // Update existing grant
         existingGrant.grantId = grantId;
         if (email) existingGrant.email = email;
         if (provider) existingGrant.provider = provider;
         return await existingGrant.save();
       } else {
-        // Create new grant
         const newGrant = new Grant({
           userId,
           grantId,

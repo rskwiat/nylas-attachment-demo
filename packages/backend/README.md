@@ -35,17 +35,7 @@ Express.js backend server with TypeScript for the Nylas Attachment project.
 
 ## API Endpoints
 
-- `GET /health` - Health check endpoint
-- `GET /api` - Main API endpoint
-
-## Development
-
-The server runs on port 3001 by default. You can change this by setting the `PORT` environment variable.
-
-### Project Structure
-
-```
-src/
-├── index.ts          # Main application file
-└── ...               # Add your routes, models, etc.
-```
+` GET /oauth/exchange` - Init Auth
+- `GET /nylas/auth` - Get Authentication
+- `POST /nylas/send-email` - Send emails using nylas api
+- `GET /nylas/sent-emails` - Get all emails sent from your gmail account

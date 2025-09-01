@@ -24,7 +24,7 @@ function App() {
   const fetchSentEmails = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3001/nylas/sent-emails');
+      const response = await fetch('api/nylas/sent-emails');
       if (!response.ok) {
         throw new Error('Failed to fetch sent emails');
       }

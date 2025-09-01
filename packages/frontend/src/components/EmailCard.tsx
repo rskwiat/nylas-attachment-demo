@@ -1,5 +1,26 @@
 import { FaPaperclip } from "react-icons/fa";
-function EmailCard ({ emails }) {
+
+interface Attachment {
+  id: string;
+  filename: string;
+  contentType?: string;
+  size?: number;
+}
+
+interface Email {
+  id: string;
+  subject: string;
+  to: Array<{ email: string; name?: string }>;
+  date?: number;
+  snippet: string;
+  attachments?: Attachment[];
+}
+
+interface EmailCardProps {
+  emails: Email[];
+}
+
+function EmailCard ({ emails }: EmailCardProps) {
   return emails.map((email) => {
     return (
       <div key={email.id} className="card bg-base-200 shadow-sm">
